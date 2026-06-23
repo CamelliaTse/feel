@@ -1,0 +1,139 @@
+.\" Manual page for feel v1.3.0
+.TH FEEL 1 "2026-06-23" "feel v1.3.0" "User Commands"
+.
+.SH NAME
+feel \- record your current feelings from the command line
+.
+.SH SYNOPSIS
+.B feel
+.RI [ subcommand ]
+.RI [ arguments... ]
+.
+.SH DESCRIPTION
+.B feel
+is a simple command-line tool to record your moods or thoughts.
+It supports interactive mode, direct recording, listing, and deletion of entries.
+.
+.SH COMMANDS
+.TP
+.B feel
+Start interactive recording mode. You will be prompted to enter your feeling.
+.TP
+.BI "feel " description
+Record an entry directly with the given
+.IR description .
+.TP
+.B feel list
+Show the last 10 log entries.
+.RS
+.TP
+.B \-n \fIN\fP
+Display the last
+.I N
+entries (e.g., \fB\-n 5\fP).
+.TP
+.B \-a
+Display all recorded entries.
+.RE
+.TP
+.BR "feel delete " \fItimestamp\fP
+Delete the entry that matches the specified timestamp.
+.TP
+.B feel delete last
+Delete the most recently added entry.
+.TP
+.B feel version
+Print version information.
+.TP
+.BR help ", " \-h ", " \-\-help
+Show a brief help message.
+.
+.SH ALIASES
+For convenience,
+.B feel
+provides the following aliases:
+.TP
+.B ls
+Equivalent to
+.BR list .
+.TP
+.B "ls -a"
+Equivalent to
+.BR "list \-a" .
+.TP
+.BI "ls \-n " N
+Equivalent to
+.BI "list \-n " N .
+.TP
+.BR del ", " rm
+Equivalent to
+.BR delete .
+.TP
+.BR \-h ", " \-\-help
+Equivalent to
+.BR help .
+.TP
+.BR \-v ", " \-\-version
+Equivalent to
+.BR version .
+.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+An error occurred.
+.
+.SH EXAMPLES
+.PP
+Start interactive recording:
+.RS
+.nf
+$ feel
+.feel> The sun is shining
+Recorded.
+.fi
+.RE
+.PP
+Record directly from the command line:
+.RS
+.nf
+$ feel "Finished writing the manual page"
+Recorded.
+.fi
+.RE
+.PP
+View the last 5 entries:
+.RS
+.nf
+$ feel list \-n 5
+2026-06-23 10:15 Finished writing the manual page
+2026-06-23 10:01 The sun is shining
+...
+.fi
+.RE
+.PP
+Delete the most recent entry:
+.RS
+.nf
+$ feel delete last
+Deleted.
+.fi
+.RE
+.PP
+Show all entries:
+.RS
+.nf
+$ feel list \-a
+# or using the alias:
+$ feel ls \-a
+.fi
+.RE
+.
+.SH SEE ALSO
+.BR date (1),
+.BR journalctl (1)
+.
+.SH AUTHOR
+CamelliaTse <camelliatse@mail.yuanchu.link>.  
