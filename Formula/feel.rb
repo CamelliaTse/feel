@@ -1,7 +1,7 @@
 class Feel < Formula
   desc "记录当前感受的命令行工具 / CLI tool to record your current feelings"
   homepage "https://github.com/CamelliaTse/feel"
-  url "https://github.com/CamelliaTse/feel/archive/refs/tags/v1.3.0.tar.gz"
+  url "https://github.com/CamelliaTse/feel/archive/refs/tags/v2.2.0.tar.gz"
   sha256 ""
   license "MIT"
 
