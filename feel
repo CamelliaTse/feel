@@ -29,7 +29,7 @@ import re
 import shlex
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 VERSION = "2.2.0"
 
@@ -167,7 +167,7 @@ def _edit_long() -> None:
     tr = _t()
 
     os.makedirs(LONG_DIR, exist_ok=True)
-    now = datetime.now()
+    now = datetime.now(tz=timezone.utc).astimezone()
     base = now.strftime("%Y%m%d-%H%M%S")
     filename = base + LONG_EXT
     filepath = os.path.join(LONG_DIR, filename)
@@ -188,7 +188,7 @@ def _edit_long() -> None:
     print(tr["long.opening"])
 
     try:
-        ret = subprocess.run(shlex.split(editor) + [filepath])
+        ret = subprocess.run(shlex.split(editor) + [filepath], check=False)
     except (FileNotFoundError, OSError):
         print(tr["long.editor"].format(editor=editor))
         if os.path.isfile(filepath):
@@ -216,7 +216,7 @@ def _edit_long() -> None:
 
 def _write_log(feeling: str, note: str | None = None) -> None:
     """写入日志行。"""
-    now = datetime.now()
+    now = datetime.now(tz=timezone.utc).astimezone()
     unix_ts = int(now.timestamp())
     timestamp = now.strftime("%Y-%m-%d %H:%M")
     parts = [str(unix_ts), timestamp, feeling]
@@ -447,10 +447,7 @@ def _prompt(prompt: str) -> str:
     """读取用户输入，绕过 readline 以避免 CJK 宽字符丢失问题。"""
     sys.stdout.write(prompt)
     sys.stdout.flush()
-    try:
-        raw = sys.stdin.buffer.readline()
-    except KeyboardInterrupt:
-        raise
+    raw = sys.stdin.buffer.readline()
     return raw.decode("utf-8", errors="replace").rstrip("\n\r")
 
 
