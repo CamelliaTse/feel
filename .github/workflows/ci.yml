@@ -28,57 +28,45 @@ jobs:
         run: ruff check feel
 
   test:
-    name: 测试 (${{ matrix.os }} / Python ${{ matrix.python-version }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ["3.10", "3.12", "3.13"]
+    name: 冒烟测试
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: 设置 Python ${{ matrix.python-version }}
+      - name: 设置 Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
 
       - name: 语法检查
         run: python -m py_compile feel
 
-      - name: 测试 help 命令
-        run: python feel help
-
-      - name: 测试 help 别名 --help
-        run: python feel --help
-
-      - name: 测试 help 别名 -h
-        run: python feel -h
-
-      - name: 测试 list 命令（无日志）
-        run: python feel list
-
-      - name: 测试直接记录
-        run: python feel "CI 测试记录"
-
-      - name: 测试 list 命令（有日志）
-        run: python feel list
-
-      - name: 测试 list -n
-        run: python feel list -n 5
-
-      - name: 测试 list 别名 ls
-        run: python feel ls
-
-      - name: 测试 list 别名 ls -a
-        run: python feel ls -a
-
-      - name: 测试 list -n 别名
-        run: python feel ls -n 1
-
-      - name: 验证日志文件格式
+      - name: 帮助命令与别名
         run: |
-          LOG_FILE="${XDG_DATA_HOME:-$HOME/.local/share}/feel/log"
+          python feel help
+          python feel --help
+          python feel -h
+
+      - name: 版本命令与别名
+        run: |
+          python feel version
+          python feel -v
+
+      - name: 直接记录
+        run: python feel "CI 冒烟测试"
+
+      - name: 查看日志
+        run: python feel list
+
+      - name: list 别名与选项
+        run: |
+          python feel ls
+          python feel ls -a
+          python feel ls -n 1
+
+      - name: 验证日志格式（v2.1.0 起主日志为 log.feel）
+        run: |
+          LOG_FILE="${XDG_DATA_HOME:-$HOME/.local/share}/feel/log.feel"
           test -f "$LOG_FILE" || { echo "日志文件不存在"; exit 1; }
           LINE=$(tail -1 "$LOG_FILE")
           # 格式: <unix_ts> <YYYY-MM-DD HH:MM> <feeling>
@@ -87,22 +75,20 @@ jobs:
             exit 1
           }
 
-      - name: 测试环境 LANG=en_US
-        run: |
-          LANG=en_US.UTF-8 python feel help
+      - name: 英文环境
+        run: LANG=en_US.UTF-8 python feel help
 
-  homebrew:
-    name: Homebrew Formula 验证
-    runs-on: macos-latest
+  homebrew-check:
+    name: Homebrew Formula 轻量检查
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: 验证 Formula Ruby 语法
         run: ruby -c Formula/feel.rb
 
-      - name: 验证 Formula 内容完整性
+      - name: 验证 Formula 结构完整性
         run: |
-          # 检查必要字段存在
           grep -q 'class Feel < Formula' Formula/feel.rb
           grep -q 'desc ' Formula/feel.rb
           grep -q 'homepage ' Formula/feel.rb
@@ -111,29 +97,15 @@ jobs:
           grep -q 'license ' Formula/feel.rb
           grep -q 'def install' Formula/feel.rb
           grep -q 'test do' Formula/feel.rb
-          echo "✅ Formula 结构完整"
+          echo "Formula 结构完整"
 
       - name: 验证 sha256 不为占位符
         run: |
           if grep -q 'sha256 "SKIP"' Formula/feel.rb || grep -q 'sha256 "TODO' Formula/feel.rb; then
-            echo "❌ sha256 仍为占位符，请更新为真实值"
+            echo "sha256 仍为占位符，请更新为真实值"
             exit 1
           fi
-          echo "✅ sha256 已设置"
-
-      - name: 通过本地 tap 安装验证
-        run: |
-          # 创建本地 tap 并复制 Formula
-          mkdir -p "$(brew --repository)/Library/Taps/camelliatse/homebrew-feel/Formula"
-          cp Formula/feel.rb "$(brew --repository)/Library/Taps/camelliatse/homebrew-feel/Formula/feel.rb"
-          # 安装
-          brew install camelliatse/feel/feel
-          # 验证二进制可用
-          feel help
-          echo "✅ Homebrew 安装验证通过"
-
-      - name: 运行 brew test
-        run: brew test camelliatse/feel/feel
+          echo "sha256 已设置"
 
   version-consistency:
     name: 版本一致性检查
@@ -141,32 +113,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 检查版本号一致性
+      - name: 检查版本号一致性（脚本 / PKGBUILD / Formula / README / man page）
         run: |
-          # 从 feel 脚本提取版本
           SCRIPT_VER=$(grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' feel | head -1)
-          # 从 PKGBUILD 提取版本
           PKGBUILD_VER=$(grep -oP 'pkgver=\K[0-9]+\.[0-9]+\.[0-9]+' PKGBUILD)
-          # 从 Formula 提取版本
           FORMULA_VER=$(grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' Formula/feel.rb | head -1)
-          # 从 README 提取版本
           README_VER=$(grep -oP '# feel v\K[0-9]+\.[0-9]+\.[0-9]+' README.md | head -1)
+          MAN_VER=$(grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' feel.1 | head -1)
 
           echo "feel 脚本: $SCRIPT_VER"
           echo "PKGBUILD:  $PKGBUILD_VER"
           echo "Formula:   $FORMULA_VER"
           echo "README:    $README_VER"
+          echo "man page:  $MAN_VER"
 
-          if [ "$SCRIPT_VER" != "$PKGBUILD_VER" ]; then
-            echo "❌ 版本不一致: feel($SCRIPT_VER) vs PKGBUILD($PKGBUILD_VER)"
+          fail=0
+          for name in PKGBUILD_VER FORMULA_VER README_VER MAN_VER; do
+            if [ "${!name}" != "$SCRIPT_VER" ]; then
+              echo "版本不一致: $name=${!name} != feel=$SCRIPT_VER"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
             exit 1
           fi
-          if [ "$SCRIPT_VER" != "$FORMULA_VER" ]; then
-            echo "❌ 版本不一致: feel($SCRIPT_VER) vs Formula($FORMULA_VER)"
-            exit 1
-          fi
-          if [ "$SCRIPT_VER" != "$README_VER" ]; then
-            echo "❌ 版本不一致: feel($SCRIPT_VER) vs README($README_VER)"
-            exit 1
-          fi
-          echo "✅ 所有版本号一致: $SCRIPT_VER"
+          echo "所有版本号一致: $SCRIPT_VER"

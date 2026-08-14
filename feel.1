@@ -1,5 +1,5 @@
-.\" Manual page for feel v1.3.0
-.TH FEEL 1 "2026-06-23" "feel v1.3.0" "User Commands"
+.\" Manual page for feel v2.2.0
+.TH FEEL 1 "2026-08-13" "feel v2.2.0" "User Commands"
 .
 .SH NAME
 feel \- record your current feelings from the command line
@@ -12,41 +12,98 @@ feel \- record your current feelings from the command line
 .SH DESCRIPTION
 .B feel
 is a simple command-line tool to record your moods or thoughts.
-It supports interactive mode, direct recording, listing, and deletion of entries.
+It supports interactive mode, direct recording, long-form notes,
+listing, reading, and deletion of entries.
+The language of its prompts and messages follows the
+.B LANG
+environment variable: Chinese when it starts with
+.BR zh ,
+English otherwise.
 .
 .SH COMMANDS
 .TP
 .B feel
-Start interactive recording mode. You will be prompted to enter your feeling.
+Start interactive recording mode. You are prompted for your feeling
+and an optional note. Press Enter with no input at the feeling
+prompt to exit.
 .TP
 .BI "feel " description
 Record an entry directly with the given
 .IR description .
 .TP
-.B feel list
-Show the last 10 log entries.
-.RS
+.B feel long
+Compose a long-form entry in an editor
+.RB ( $EDITOR ,
+default
+.BR vim ).
+A file is created in the long-form directory (see
+.B FILES
+below) with a default
+.B #
+heading of the form
+.IR "unix_timestamp yyyy-mm-dd hh:mm" ,
+and an index line is appended to the main log.
+If no content is written, the entry is cancelled.
 .TP
-.B \-n \fIN\fP
-Display the last
-.I N
-entries (e.g., \fB\-n 5\fP).
+.BI "feel read " "timestamp | index | last"
+Print the full content of a long-form entry, matched by its Unix
+timestamp, by the line number shown by
+.BR "feel list" ,
+or by the keyword
+.BR last
+for the most recent entry.
 .TP
-.B \-a
-Display all recorded entries.
-.RE
+.BR "feel show " "timestamp | index | last"
+Alias for
+.BR read .
 .TP
-.BR "feel delete " \fItimestamp\fP
-Delete the entry that matches the specified timestamp.
+.BR "feel list " [ \-n \fIN\fP ] [ \-a ]
+Show log entries. By default the last 10 entries are shown.
+Long-form entries are marked with a
+.B [LONG]:
+prefix and displayed with their
+.B #
+title (or
+.I <no summary>
+if the title was not customized).
 .TP
-.B feel delete last
-Delete the most recently added entry.
+.BI "feel delete " "timestamp | index | last"
+Delete the entry matching the specified Unix timestamp, the line
+number shown by
+.BR "feel list" ,
+or, with the keyword
+.BR last ,
+the most recent entry.
+Deletion requires confirmation.
 .TP
 .B feel version
 Print version information.
 .TP
-.BR help ", " \-h ", " \-\-help
+.BR "feel help " | \-h | \-\-help
 Show a brief help message.
+.
+.SH OPTIONS
+.TP
+.B \-n \fIN\fP
+With
+.BR list :
+display the last
+.I N
+entries (e.g.,
+.BR \-n " 5" ).
+.TP
+.B \-a
+With
+.BR list :
+display all recorded entries.
+.TP
+.BR \-h ", " \-\-help
+Equivalent to
+.BR help .
+.TP
+.BR \-v ", " \-\-version
+Equivalent to
+.BR version .
 .
 .SH ALIASES
 For convenience,
@@ -65,6 +122,10 @@ Equivalent to
 Equivalent to
 .BI "list \-n " N .
 .TP
+.B show
+Equivalent to
+.BR read .
+.TP
 .BR del ", " rm
 Equivalent to
 .BR delete .
@@ -76,6 +137,53 @@ Equivalent to
 .BR \-v ", " \-\-version
 Equivalent to
 .BR version .
+.
+.SH ENVIRONMENT
+.TP
+.B LANG
+Selects the display language. Values starting with
+.B zh
+produce Chinese messages; anything else produces English.
+.TP
+.B EDITOR
+Editor used by
+.BR "feel long" .
+Defaults to
+.BR vim .
+.TP
+.B XDG_DATA_HOME
+Base directory for data. Defaults to
+.IR ~/.local/share .
+.TP
+.B FEEL_MD_EXT
+When set to
+.B true
+(case-insensitive), the main log uses
+.B log.txt
+and long-form entries use the
+.B .md
+extension; otherwise the
+.B .feel
+extension is used (the default). The switch only affects newly
+written files and leaves existing data untouched.
+.
+.SH FILES
+.TP
+.I $XDG_DATA_HOME/feel/log.feel
+Main log. Each line has the form
+.IR "unix_timestamp yyyy-mm-dd hh:mm feeling [(note)]" .
+With
+.B FEEL_MD_EXT=true
+this becomes
+.IR log.txt .
+.TP
+.I $XDG_DATA_HOME/feel/long/
+Directory for long-form entries, one
+.B .feel
+file per entry (or
+.B .md
+with
+.BR FEEL_MD_EXT=true ).
 .
 .SH EXIT STATUS
 .TP
@@ -91,8 +199,8 @@ Start interactive recording:
 .RS
 .nf
 $ feel
-.feel> The sun is shining
-Recorded.
+Feeling: The sun is shining
+Note (optional, Enter to skip):
 .fi
 .RE
 .PP
@@ -100,7 +208,21 @@ Record directly from the command line:
 .RS
 .nf
 $ feel "Finished writing the manual page"
-Recorded.
+Recorded: 1786555500 2026-08-13 01:25 Finished writing the manual page
+.fi
+.RE
+.PP
+Compose a long-form entry in the editor:
+.RS
+.nf
+$ feel long
+.fi
+.RE
+.PP
+Read the most recent long-form entry:
+.RS
+.nf
+$ feel read last
 .fi
 .RE
 .PP
@@ -108,9 +230,13 @@ View the last 5 entries:
 .RS
 .nf
 $ feel list \-n 5
-2026-06-23 10:15 Finished writing the manual page
-2026-06-23 10:01 The sun is shining
-...
+.fi
+.RE
+.PP
+Show all entries with the alias:
+.RS
+.nf
+$ feel ls \-a
 .fi
 .RE
 .PP
@@ -118,22 +244,13 @@ Delete the most recent entry:
 .RS
 .nf
 $ feel delete last
-Deleted.
-.fi
-.RE
-.PP
-Show all entries:
-.RS
-.nf
-$ feel list \-a
-# or using the alias:
-$ feel ls \-a
 .fi
 .RE
 .
 .SH SEE ALSO
 .BR date (1),
-.BR journalctl (1)
+.BR vim (1),
+.BR env (1)
 .
 .SH AUTHOR
-CamelliaTse <camelliatse@mail.yuanchu.link>.  
+CamelliaTse <camelliatse@mail.yuanchu.link>.
